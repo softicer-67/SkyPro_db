@@ -1,61 +1,51 @@
-import csv
-
-# Загрузить данные из csv
-data = []
-with open('datasets/ads.csv', newline='', encoding="utf-8") as file:
-    reader = csv.reader(file, delimiter=',')
-    for row in reader:
-        data.append(row)
+from settings import DB_PASS
+import psycopg2
+from psycopg2 import Error
+from functions import *
 
 
-# Запись в файл author.csv
-authors = []
-for i in data:
-    if i != data[0]:
-        authors.append(i[2])
-uniq_authors = set(authors)
-count = 1
-with open('author.csv', 'w', newline='', encoding='utf-8') as f:
-    writer = csv.writer(f)
-    for author in uniq_authors:
-        writer.writerow([count, author])
-        count += 1
+def main():
+    try:
+        # Подключиться к существующей базе данных
+        connection = psycopg2.connect(user="postgres",
+                                      # пароль, который указали при установке PostgreSQL
+                                      password=DB_PASS,
+                                      host="127.0.0.1",
+                                      port="5432",
+                                      database="new_db")
+        cursor = connection.cursor()
 
-# Уникальные адреса
-adr = []
-for a in data:
-    if a != data[0]:
-        adr.append(a[5])
-uniq_adr = set(adr)
-count = 1
-with open('address.csv', 'w', newline='', encoding='utf-8') as f:
-    file = csv.writer(f)
-    for idx in uniq_adr:
-        file.writerow([count, idx])
-        count += 1
+        while True:
+            print('[1] Вывести все объявления\n'
+                  '[2] Вывести объявления конкретного пользователя\n'
+                  '[3] Вывести объявления в диапазоне цен, сортировка данных в порядке возрастания цены\n'
+                  '[4] Вывести объявления для конкретного города\n'
+                  '[5] Вывести информацию для определенного пользователя и цены\n'
+                  '[0] - Выход\n')
 
-adr_file = []
-with open('address.csv', newline='', encoding="utf-8") as f:
-    reader = csv.reader(f, delimiter=',')
-    for row in reader:
-        adr_file.append(row)
+            user_input = input('Выбрать вариант: ')
+            match user_input:
+                case '1':
+                    get_ads(cursor)
+                case '2':
+                    get_user_ads(cursor)
+                case '3':
+                    get_sort(cursor)
+                case '4':
+                    get_city(cursor)
+                case '5':
+                    get_user_price(cursor)
+                case _:
+                    exit('Exit')
 
-authors_file = []
-with open('author.csv', newline='', encoding="utf-8") as f:
-    reader = csv.reader(f, delimiter=',')
-    for row in reader:
-        authors_file.append(row)
-
-with open('new.csv', 'w', newline='', encoding='utf-8') as f:
-    writer = csv.writer(f)
-    for d in data[1:]:
-        for author in authors_file:
-            if d[2] == author[1]:
-                d[2] = author[0]
-        for adr in adr_file:
-            if d[5] == adr[1]:
-                d[5] = adr[0]
-        writer.writerow(d)
+    except (Exception, Error) as error:
+        print("Ошибка при работе с PostgreSQL", error)
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+            print("Соединение с PostgreSQL закрыто")
 
 
-
+if __name__ == '__main__':
+    main()
